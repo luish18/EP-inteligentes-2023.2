@@ -8,8 +8,6 @@ packages = [{include = "ep_inteligentes_2023"}]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-torch = "2.0.0"
-torchmetrics = "^1.2.0"
 pandas = "^2.1.1"
 matplotlib = "^3.8.0"
 tqdm = "^4.66.1"

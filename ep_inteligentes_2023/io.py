@@ -3,8 +3,6 @@ import cv2 as cv
 import numpy.typing as npt
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-from icecream import ic
 
 
 def leImagens(
@@ -26,7 +24,7 @@ def leImagens(
 def mostrarLote(x, y=None):
     class_name_map = {0: "Covid", 1: "Non-Covid", 2: "Normal"}
 
-    fig, axes= plt.subplots(4, 4)
+    fig, axes = plt.subplots(4, 4)
     axes = axes.flatten()
 
     for i in range(16):
@@ -38,18 +36,5 @@ def mostrarLote(x, y=None):
 
     plt.tight_layout()
     plt.show()
-#|%%--%%| <IBpUoHeNfE|wK0c9akEk4>
 
-os.chdir("ep_inteligentes_2023")
-#|%%--%%| <wK0c9akEk4|qvLc7Q2XEu>
-imgs, labels = leImagens(
-    [
-        "../data/Lung Segmentation Data/Lung Segmentation Data/Train/COVID-19/images/*.png",
-        "../data/Lung Segmentation Data/Lung Segmentation Data/Train/Non-COVID/images/*.png",
-        "../data/Lung Segmentation Data/Lung Segmentation Data/Train/Normal/images/*.png",
-    ],
-    classes=[0, 1, 2]
-)
 
-#|%%--%%| <qvLc7Q2XEu|Bc3wWztzBL>
-mostrarLote(imgs)
