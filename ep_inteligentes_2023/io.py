@@ -23,7 +23,6 @@ def leImagens(
 
 def mostrarLote(x, y=None):
     class_name_map = {0: "Covid", 1: "Non-Covid", 2: "Normal"}
-
     fig, axes = plt.subplots(4, 4)
     axes = axes.flatten()
 

@@ -1,46 +1,14 @@
-from ep_inteligentes_2023.io import leImagens
 import torch
 from torch import nn
 from icecream import ic
-from typing import Literal
 import torchmetrics as tmetrics
 from tqdm import tqdm
+from memory_profiler import profile
+import icecream
+import torchvision
+from torchsummary import summary
 
-
-class dataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_type: Literal["Train", "Test"]):
-        if dataset_type == "Test":
-            paths = [
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Test/COVID-19/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Test/Non-COVID/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Test/Normal/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Val/COVID-19/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Val/Non-COVID/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Val/Normal/images/*.png",
-            ]
-
-            self.imgs, self.labels = leImagens(
-                paths,
-                classes=[0, 1, 2, 0, 1, 2],
-            )
-
-        else:
-            paths = [
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Train/COVID-19/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Train/Non-COVID/images/*.png",
-                "./data/Lung Segmentation Data/Lung Segmentation Data/Train/Normal/images/*.png",
-            ]
-
-            self.imgs, self.labels = leImagens(
-                paths,
-                classes=[0, 1, 2],
-            )
-
-    def __len__(self):
-        return self.labels.shape[0]
-
-    def __getitem__(self, index):
-        return torch.tensor(self.imgs), torch.tensor(self.labels)
+icecream.install()
 
 
 class Network(nn.Module):
@@ -48,36 +16,45 @@ class Network(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(1, 128, kernel_size=k_size),
+            nn.Conv2d(3, 128, kernel_size=k_size, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=128),
-            nn.Conv2d(128, 64, kernel_size=k_size),
+            nn.BatchNorm2d(num_features=128),  # 112x112
+            nn.Conv2d(128, 64, kernel_size=k_size, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=64),
-            nn.Conv2d(64, 32, kernel_size=k_size),
+            nn.BatchNorm2d(num_features=64),  # 56x56
+            nn.Conv2d(64, 32, kernel_size=k_size, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=32),
-            nn.Conv2d(32, 16, kernel_size=k_size),
+            nn.BatchNorm2d(num_features=32),  # 28x28
+            nn.Conv2d(32, 16, kernel_size=k_size, stride=2, padding=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=16),
-            nn.Conv2d(16, 32, kernel_size=k_size),
+            nn.BatchNorm2d(num_features=16),  # 14x14
+            nn.ConvTranspose2d(
+                16, 32, kernel_size=k_size, stride=2, padding=1, output_padding=1
+            ),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=32),
-            nn.Conv2d(32, 64, kernel_size=k_size),
+            nn.BatchNorm2d(num_features=32),  # 28x28
+            nn.ConvTranspose2d(
+                32, 64, kernel_size=k_size, stride=2, padding=1, output_padding=1
+            ),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=64),
-            nn.Conv2d(64, 128, kernel_size=k_size),
+            nn.BatchNorm2d(num_features=64),  # 56x56
+            nn.ConvTranspose2d(
+                64, 128, kernel_size=k_size, stride=2, padding=1, output_padding=1
+            ),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(num_features=128),
+            nn.BatchNorm2d(num_features=128),  # 128x128
             nn.Flatten(),
-            nn.Linear(128 * 224 * 224, 64),
+            nn.Linear(128 * 112 * 112, 64),
             nn.ReLU(inplace=True),
+
             nn.Dropout(0.2),
             nn.Linear(64, 32),
             nn.ReLU(inplace=True),
+
             nn.Dropout(0.2),
             nn.Linear(32, 16),
             nn.ReLU(inplace=True),
+
             nn.Dropout(0.2),
             nn.Linear(16, 3),
         )
@@ -86,6 +63,7 @@ class Network(nn.Module):
         return self.model(x)
 
 
+@profile
 def train_loop(
     dataloader: torch.utils.data.DataLoader,
     model: nn.Module,
@@ -149,17 +127,29 @@ def test_loop(
 
     return running_loss / len(dataloader.dataset)
 
-#|%%--%%| <W0oXdaWvA8|iiexgpmwrL>
 
-device = torch.device("cpu")
+# |%%--%%| <W0oXdaWvA8|iiexgpmwrL>
 
-training_data = dataset("Train")
-test_data = dataset("Test")
+device = torch.device("mps")
+
+
+transforms = torchvision.transforms.Compose(
+    [torchvision.transforms.ToTensor(), torchvision.transforms.Resize(size=(224, 224))]
+)
+
+training_data = torchvision.datasets.ImageFolder(
+    root="./data/Lung Segmentation Data/Lung Segmentation Data/Train/",
+    transform=transforms,
+)
+test_data = torchvision.datasets.ImageFolder(
+    root="./data/Lung Segmentation Data/Lung Segmentation Data/Test/",
+    transform=transforms,
+)
 
 BATCH_SIZE = 16
 EPOCHS = 16
 LR = 1e-3
-#|%%--%%| <iiexgpmwrL|wqFFBUvlcN>
+# |%%--%%| <iiexgpmwrL|wqFFBUvlcN>
 
 train_loader = torch.utils.data.DataLoader(
     dataset=training_data, batch_size=BATCH_SIZE, shuffle=True
@@ -167,7 +157,7 @@ train_loader = torch.utils.data.DataLoader(
 test_loader = torch.utils.data.DataLoader(
     dataset=test_data, batch_size=BATCH_SIZE, shuffle=True
 )
-#|%%--%%| <wqFFBUvlcN|ROd14kZ0Td>
+# |%%--%%| <wqFFBUvlcN|ROd14kZ0Td>
 
 NUM_LABELS = 3
 test_metrics = tmetrics.MetricCollection(
@@ -184,6 +174,7 @@ train_metrics = tmetrics.MetricCollection(
 )
 
 model = Network()
+summary(model, input_size=(3, 224, 224))
 model.to(device)
 
 test_tracker = tmetrics.MetricTracker(test_metrics).to(device)
@@ -192,7 +183,7 @@ train_tracker = tmetrics.MetricTracker(train_metrics).to(device)
 loss_fn = nn.CrossEntropyLoss().to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
-#|%%--%%| <ROd14kZ0Td|5WyE2whK5p>
+# |%%--%%| <ROd14kZ0Td|5WyE2whK5p>
 
 iterator = tqdm(range(EPOCHS))
 for t in iterator:
@@ -228,4 +219,3 @@ for t in iterator:
         update["epoch/" + key] = metrics[key]
     update.update({"epoch": t, "epoch/test/loss": test_loss})
     iterator.set_postfix(update)
-
