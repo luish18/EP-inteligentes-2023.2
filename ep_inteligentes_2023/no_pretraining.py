@@ -149,7 +149,7 @@ def test_loop(
 
     return running_loss / len(dataloader.dataset)
 
-#|%%--%%| <W0oXdaWvA8|CifgadktI6>
+#|%%--%%| <W0oXdaWvA8|iiexgpmwrL>
 
 device = torch.device("cpu")
 
@@ -159,6 +159,7 @@ test_data = dataset("Test")
 BATCH_SIZE = 16
 EPOCHS = 16
 LR = 1e-3
+#|%%--%%| <iiexgpmwrL|wqFFBUvlcN>
 
 train_loader = torch.utils.data.DataLoader(
     dataset=training_data, batch_size=BATCH_SIZE, shuffle=True
@@ -166,7 +167,7 @@ train_loader = torch.utils.data.DataLoader(
 test_loader = torch.utils.data.DataLoader(
     dataset=test_data, batch_size=BATCH_SIZE, shuffle=True
 )
-#|%%--%%| <CifgadktI6|ROd14kZ0Td>
+#|%%--%%| <wqFFBUvlcN|ROd14kZ0Td>
 
 NUM_LABELS = 3
 test_metrics = tmetrics.MetricCollection(
